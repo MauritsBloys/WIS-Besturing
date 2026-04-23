@@ -2,141 +2,362 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Water Testbed Control</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 24px; }
-    h1 { color: #4fc3f7; font-size: 1.6rem; margin-bottom: 6px; }
-    .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 28px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-    .span2 { grid-column: span 2; }
-    .card { background: #16213e; border: 1px solid #0f3460; border-radius: 10px; padding: 20px; }
-    .card h2 { font-size: 1rem; color: #4fc3f7; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 10px; }
-    .dot { width: 9px; height: 9px; border-radius: 50%; background: #555; display: inline-block; }
-    .dot.on  { background: #66bb6a; box-shadow: 0 0 6px #66bb6a; }
-    .dot.off { background: #ef5350; }
-    .status-box { background: #0d1b2a; border-radius: 6px; padding: 12px; font-size: 0.8rem; color: #90caf9; min-height: 60px; white-space: pre-wrap; word-break: break-all; }
-    .relay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .relay-item { display: flex; flex-direction: column; gap: 6px; }
-    .relay-label { font-size: 0.8rem; color: #aaa; }
-    .btn-row { display: flex; gap: 6px; }
-    button { cursor: pointer; border: none; border-radius: 5px; padding: 8px 14px; font-size: 0.82rem; font-weight: 600; transition: opacity 0.15s; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 20px; }
+    h1 { color: #4fc3f7; font-size: 1.4rem; margin-bottom: 4px; }
+    .subtitle { color: #888; font-size: 0.82rem; margin-bottom: 16px; }
+
+    /* ── Schematic ── */
+    .schematic-wrap {
+      background: #0d1b2a;
+      border: 1px solid #0f3460;
+      border-radius: 10px;
+      padding: 14px 14px 8px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .schematic-wrap .card-title {
+      font-size: 0.85rem; color: #4fc3f7; text-transform: uppercase;
+      letter-spacing: 0.05em; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    svg#schematic { width: 100%; height: auto; display: block; }
+
+    /* ── Popup ── */
+    .ctrl-popup {
+      position: absolute;
+      background: #16213e;
+      border: 1px solid #4fc3f7;
+      border-radius: 8px;
+      padding: 14px;
+      z-index: 200;
+      min-width: 210px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+    }
+    .ctrl-popup.hidden { display: none; }
+    .ctrl-popup h3 { color: #4fc3f7; font-size: 0.88rem; margin-bottom: 12px; }
+    .popup-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .popup-row label { font-size: 0.78rem; color: #aaa; width: 52px; flex-shrink: 0; }
+    .popup-row input[type=range] { flex: 1; accent-color: #4fc3f7; }
+    .popup-row input[type=number] {
+      width: 58px; background: #0d1b2a; border: 1px solid #0f3460;
+      color: #e0e0e0; border-radius: 4px; padding: 4px 5px; font-size: 0.8rem;
+    }
+    .popup-btns { display: flex; gap: 6px; margin-top: 6px; }
+    .popup-btns button {
+      cursor: pointer; border: none; border-radius: 4px;
+      padding: 6px 10px; font-size: 0.78rem; font-weight: 600; flex: 1;
+    }
+    .pb-min { background: #3e0000; color: #ef9a9a; border: 1px solid #ef9a9a !important; }
+    .pb-max { background: #1b5e20; color: #81c784; border: 1px solid #81c784 !important; }
+    .pb-set { background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7 !important; }
+    .pb-x   { background: #1e1e3a; color: #888; }
+
+    /* ── Bottom grid ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
+    .card { background: #16213e; border: 1px solid #0f3460; border-radius: 10px; padding: 16px; }
+    .card h2 {
+      font-size: 0.85rem; color: #4fc3f7; text-transform: uppercase;
+      letter-spacing: 0.05em; margin-bottom: 13px;
+    }
+    .relay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .relay-item { display: flex; flex-direction: column; gap: 4px; }
+    .relay-label { font-size: 0.76rem; color: #aaa; }
+    .btn-row { display: flex; gap: 5px; }
+    button { cursor: pointer; border: none; border-radius: 5px; padding: 7px 11px; font-size: 0.78rem; font-weight: 600; transition: opacity 0.15s; }
     button:hover { opacity: 0.85; }
-    button:disabled { opacity: 0.35; cursor: default; }
     .btn-on     { background: #2e7d32; color: #fff; }
     .btn-off    { background: #b71c1c; color: #fff; }
-    .btn-action { background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; width: 100%; margin-top: 8px; padding: 10px; }
-    .btn-danger { background: #7b1fa2; color: #fff; width: 100%; margin-top: 8px; padding: 10px; }
-    .btn-warn   { background: #e65100; color: #fff; width: 100%; margin-top: 8px; padding: 10px; }
-    .btn-mode   { background: #01579b; color: #fff; flex: 1; padding: 10px; }
+    .btn-action { background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; width: 100%; margin-top: 8px; padding: 9px; }
+    .btn-danger { background: #7b1fa2; color: #fff; width: 100%; margin-top: 8px; padding: 9px; }
+    .mode-row { display: flex; gap: 8px; margin-bottom: 13px; }
+    .btn-mode { background: #01579b; color: #fff; flex: 1; padding: 9px; border-radius: 5px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
     .btn-mode.active { background: #0288d1; box-shadow: 0 0 8px #0288d1; }
-    .valve-row, .gate-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .valve-row label, .gate-row label { width: 70px; font-size: 0.82rem; color: #aaa; flex-shrink: 0; }
-    .valve-row input[type=range] { flex: 1; accent-color: #4fc3f7; }
-    .gate-row  input[type=range] { flex: 1; accent-color: #81c784; }
-    .valve-row input[type=number], .gate-row input[type=number] {
-      width: 64px; background: #0d1b2a; border: 1px solid #0f3460; color: #e0e0e0;
-      border-radius: 4px; padding: 4px 6px; font-size: 0.82rem;
+    .status-box {
+      background: #0d1b2a; border-radius: 6px; padding: 10px;
+      font-size: 0.76rem; color: #90caf9; min-height: 52px; white-space: pre-wrap;
     }
-    .valve-row button { flex-shrink: 0; padding: 6px 12px; font-size: 0.78rem; background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; }
-    .gate-row  button { flex-shrink: 0; padding: 6px 12px; font-size: 0.78rem; background: #1b5e20; color: #81c784; border: 1px solid #81c784; }
-    .sensor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
-    .sensor-card { background: #0d1b2a; border-radius: 8px; padding: 12px; text-align: center; }
-    .sensor-card .s-label { font-size: 0.72rem; color: #888; margin-bottom: 4px; }
-    .sensor-card .s-value { font-size: 1.4rem; font-weight: 700; color: #4fc3f7; }
-    .sensor-card .s-unit  { font-size: 0.7rem; color: #666; }
-    .sensor-card .s-raw   { font-size: 0.68rem; color: #555; margin-top: 2px; }
-    .actuator-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-    .actuator-row .a-label { width: 70px; font-size: 0.82rem; color: #aaa; }
-    .actuator-bar { flex: 1; height: 10px; background: #0d1b2a; border-radius: 5px; overflow: hidden; }
-    .actuator-bar-fill { height: 100%; background: #81c784; width: 0%; transition: width 0.4s; border-radius: 5px; }
-    .actuator-val { width: 40px; font-size: 0.8rem; color: #81c784; text-align: right; }
-    .mode-row { display: flex; gap: 10px; margin-bottom: 16px; }
-    .conn-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+    .conn-badge { font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
     .conn-ok  { background: #1b5e20; color: #66bb6a; }
     .conn-err { background: #3e0000; color: #ef9a9a; }
-    .toast { position: fixed; bottom: 20px; right: 20px; background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; border-radius: 6px; padding: 10px 18px; font-size: 0.85rem; display: none; z-index: 999; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: #0f3460; color: #4fc3f7;
+      border: 1px solid #4fc3f7; border-radius: 6px;
+      padding: 10px 18px; font-size: 0.85rem; display: none; z-index: 9999;
+    }
     .toast.error { background: #3e0000; color: #ef9a9a; border-color: #ef9a9a; }
-    @media (max-width: 700px) { .span2 { grid-column: span 1; } }
+
+    @media (max-width: 600px) { body { padding: 10px; } }
   </style>
 </head>
 <body>
   <h1>Water Testbed Control</h1>
   <p class="subtitle">TU Delft — Water Irrigation System Interface</p>
 
+  <!-- ════════════════ SCHEMATIC ════════════════ -->
+  <div class="schematic-wrap">
+    <div class="card-title">
+      Schematisch Overzicht
+      <span class="conn-badge conn-err" id="ff-badge">Firefly...</span>
+    </div>
+
+    <svg id="schematic" viewBox="0 0 900 530" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Background -->
+      <rect width="900" height="530" fill="#0d1b2a"/>
+
+      <!-- ══ RAIN PUMP (red arch) ══ -->
+      <!-- Vertical stem from pump block down -->
+      <line x1="450" y1="50" x2="450" y2="128" stroke="#ef5350" stroke-width="2"/>
+      <!-- Horizontal bar -->
+      <line x1="218" y1="128" x2="692" y2="128" stroke="#ef5350" stroke-width="2"/>
+      <!-- Left drop -->
+      <line x1="218" y1="128" x2="218" y2="200" stroke="#ef5350" stroke-width="2"/>
+      <!-- Right drop -->
+      <line x1="692" y1="128" x2="692" y2="200" stroke="#ef5350" stroke-width="2"/>
+      <!-- Dashed gray connectors to main pipe -->
+      <line x1="218" y1="200" x2="218" y2="298" stroke="#4a6fa5" stroke-width="2" stroke-dasharray="5,3" opacity="0.55"/>
+      <line x1="692" y1="200" x2="692" y2="298" stroke="#4a6fa5" stroke-width="2" stroke-dasharray="5,3" opacity="0.55"/>
+
+      <!-- ══ BACKGROUND PIPE BRANCHES (thin, going up from main pipe) ══ -->
+      <line x1="178" y1="148" x2="178" y2="298" stroke="#4a6fa5" stroke-width="2" opacity="0.28"/>
+      <line x1="268" y1="148" x2="268" y2="298" stroke="#4a6fa5" stroke-width="2" opacity="0.28"/>
+      <line x1="400" y1="148" x2="400" y2="298" stroke="#4a6fa5" stroke-width="2" opacity="0.28"/>
+      <line x1="548" y1="148" x2="548" y2="298" stroke="#4a6fa5" stroke-width="2" opacity="0.28"/>
+      <line x1="628" y1="148" x2="628" y2="298" stroke="#4a6fa5" stroke-width="2" opacity="0.28"/>
+      <line x1="718" y1="148" x2="718" y2="298" stroke="#4a6fa5" stroke-width="2" opacity="0.28"/>
+
+      <!-- ══ MAIN PIPE ══ -->
+      <line x1="58" y1="298" x2="858" y2="298" stroke="#4a6fa5" stroke-width="7"/>
+
+      <!-- ══ WELL PUMP (green) ══ -->
+      <line x1="92" y1="298" x2="92" y2="408" stroke="#66bb6a" stroke-width="2"/>
+      <line x1="58"  y1="408" x2="92" y2="408" stroke="#66bb6a" stroke-width="2"/>
+
+      <!-- ══ PRESSURE SENSORS (yellow) — going down from main pipe ══ -->
+      <!-- S1: left of Gate 1 -->
+      <line x1="112" y1="298" x2="112" y2="490" stroke="#ffd54f" stroke-width="2"/>
+      <!-- S2: right of Gate 1 -->
+      <line x1="152" y1="298" x2="152" y2="490" stroke="#ffd54f" stroke-width="2"/>
+      <!-- S3: left of Gate 2 -->
+      <line x1="305" y1="298" x2="305" y2="490" stroke="#ffd54f" stroke-width="2"/>
+      <!-- S4: right of Gate 2 -->
+      <line x1="338" y1="298" x2="338" y2="490" stroke="#ffd54f" stroke-width="2"/>
+      <!-- S5: left of Gate 3 -->
+      <line x1="472" y1="298" x2="472" y2="490" stroke="#ffd54f" stroke-width="2"/>
+      <!-- S6: right of Gate 3 -->
+      <line x1="508" y1="298" x2="508" y2="490" stroke="#ffd54f" stroke-width="2"/>
+      <!-- S7: near Gate 4 -->
+      <line x1="732" y1="298" x2="732" y2="490" stroke="#ffd54f" stroke-width="2"/>
+
+      <!-- ══ VALVES (blue) — going down from main pipe ══ -->
+      <line x1="178" y1="298" x2="178" y2="378" stroke="#4fc3f7" stroke-width="2"/>
+      <line x1="268" y1="298" x2="268" y2="378" stroke="#4fc3f7" stroke-width="2"/>
+      <line x1="400" y1="298" x2="400" y2="378" stroke="#4fc3f7" stroke-width="2"/>
+      <line x1="548" y1="298" x2="548" y2="398" stroke="#4fc3f7" stroke-width="2"/>
+      <line x1="628" y1="298" x2="628" y2="398" stroke="#4fc3f7" stroke-width="2"/>
+      <line x1="718" y1="298" x2="718" y2="378" stroke="#4fc3f7" stroke-width="2"/>
+
+      <!-- ══ GATES (thick light-gray vertical bars) ══ -->
+      <line x1="132" y1="143" x2="132" y2="298" stroke="#cfd8dc" stroke-width="11" id="gate-bar-201"/>
+      <line x1="320" y1="143" x2="320" y2="298" stroke="#cfd8dc" stroke-width="11" id="gate-bar-202"/>
+      <line x1="490" y1="143" x2="490" y2="298" stroke="#cfd8dc" stroke-width="11" id="gate-bar-203"/>
+      <line x1="758" y1="143" x2="758" y2="298" stroke="#cfd8dc" stroke-width="11" id="gate-bar-204"/>
+
+      <!-- ══ RAIN PUMP BLOCK ══ -->
+      <rect x="410" y="18" width="80" height="30" rx="5"
+            fill="#3e0000" stroke="#ef5350" stroke-width="1.5"
+            cursor="pointer" id="rain-pump-rect" onclick="togglePump('rain-pump')"/>
+      <text x="450" y="37" fill="#ef9a9a" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none" id="rain-pump-txt">Rain Pump ●</text>
+
+      <!-- ══ WELL PUMP BLOCK ══ -->
+      <rect x="16" y="390" width="65" height="30" rx="5"
+            fill="#1b5e20" stroke="#66bb6a" stroke-width="1.5"
+            cursor="pointer" id="well-pump-rect" onclick="togglePump('well-pump')"/>
+      <text x="48" y="409" fill="#a5d6a7" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none" id="well-pump-txt">Well Pump ●</text>
+
+      <!-- ══ GATE CONTROL BLOCKS (click → popup slider) ══ -->
+      <!-- G1 -->
+      <rect x="112" y="123" width="40" height="22" rx="4"
+            fill="#263238" stroke="#cfd8dc" stroke-width="1.5"
+            cursor="pointer" id="grect-201"
+            onclick="openGatePopup(201, 112, 145)"/>
+      <text x="132" y="138" fill="#cfd8dc" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">G1</text>
+      <!-- G1 position indicator -->
+      <rect x="120" y="288" width="24" height="10" rx="2" fill="#444" id="gbar-201"/>
+
+      <!-- G2 -->
+      <rect x="300" y="123" width="40" height="22" rx="4"
+            fill="#263238" stroke="#cfd8dc" stroke-width="1.5"
+            cursor="pointer" id="grect-202"
+            onclick="openGatePopup(202, 300, 145)"/>
+      <text x="320" y="138" fill="#cfd8dc" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">G2</text>
+      <rect x="308" y="288" width="24" height="10" rx="2" fill="#444" id="gbar-202"/>
+
+      <!-- G3 -->
+      <rect x="470" y="123" width="40" height="22" rx="4"
+            fill="#263238" stroke="#cfd8dc" stroke-width="1.5"
+            cursor="pointer" id="grect-203"
+            onclick="openGatePopup(203, 470, 145)"/>
+      <text x="490" y="138" fill="#cfd8dc" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">G3</text>
+      <rect x="478" y="288" width="24" height="10" rx="2" fill="#444" id="gbar-203"/>
+
+      <!-- G4 -->
+      <rect x="738" y="123" width="40" height="22" rx="4"
+            fill="#263238" stroke="#cfd8dc" stroke-width="1.5"
+            cursor="pointer" id="grect-204"
+            onclick="openGatePopup(204, 738, 145)"/>
+      <text x="758" y="138" fill="#cfd8dc" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">G4</text>
+      <rect x="746" y="288" width="24" height="10" rx="2" fill="#444" id="gbar-204"/>
+
+      <!-- ══ VALVE CONTROL BLOCKS ══ -->
+      <!-- V1 -->
+      <rect x="158" y="369" width="40" height="22" rx="4"
+            fill="#0f3460" stroke="#4fc3f7" stroke-width="1.5"
+            cursor="pointer" onclick="openValvePopup(1, 158, 391)"/>
+      <text x="178" y="384" fill="#4fc3f7" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">V1</text>
+      <!-- V2 -->
+      <rect x="248" y="369" width="40" height="22" rx="4"
+            fill="#0f3460" stroke="#4fc3f7" stroke-width="1.5"
+            cursor="pointer" onclick="openValvePopup(2, 248, 391)"/>
+      <text x="268" y="384" fill="#4fc3f7" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">V2</text>
+      <!-- V3 -->
+      <rect x="380" y="369" width="40" height="22" rx="4"
+            fill="#0f3460" stroke="#4fc3f7" stroke-width="1.5"
+            cursor="pointer" onclick="openValvePopup(3, 380, 391)"/>
+      <text x="400" y="384" fill="#4fc3f7" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">V3</text>
+      <!-- V4 -->
+      <rect x="528" y="389" width="40" height="22" rx="4"
+            fill="#0f3460" stroke="#4fc3f7" stroke-width="1.5"
+            cursor="pointer" onclick="openValvePopup(4, 528, 411)"/>
+      <text x="548" y="404" fill="#4fc3f7" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">V4</text>
+      <!-- V5 -->
+      <rect x="608" y="389" width="40" height="22" rx="4"
+            fill="#0f3460" stroke="#4fc3f7" stroke-width="1.5"
+            cursor="pointer" onclick="openValvePopup(5, 608, 411)"/>
+      <text x="628" y="404" fill="#4fc3f7" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">V5</text>
+      <!-- V6 -->
+      <rect x="698" y="369" width="40" height="22" rx="4"
+            fill="#0f3460" stroke="#4fc3f7" stroke-width="1.5"
+            cursor="pointer" onclick="openValvePopup(6, 698, 391)"/>
+      <text x="718" y="384" fill="#4fc3f7" font-size="10" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" pointer-events="none">V6</text>
+
+      <!-- ══ SENSOR VALUE LABELS (updated by JS) ══ -->
+      <text x="112" y="508" fill="#ffd54f" font-size="9" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" id="sv-1">S1:–</text>
+      <text x="152" y="508" fill="#ffd54f" font-size="9" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" id="sv-2">S2:–</text>
+      <text x="305" y="508" fill="#ffd54f" font-size="9" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" id="sv-3">S3:–</text>
+      <text x="338" y="508" fill="#ffd54f" font-size="9" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" id="sv-4">S4:–</text>
+      <text x="472" y="508" fill="#ffd54f" font-size="9" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" id="sv-5">S5:–</text>
+      <text x="508" y="508" fill="#ffd54f" font-size="9" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" id="sv-6">S6:–</text>
+      <text x="732" y="508" fill="#ffd54f" font-size="9" text-anchor="middle"
+            font-family="Segoe UI,sans-serif" id="sv-7">S7:–</text>
+
+      <!-- ══ LEGEND ══ -->
+      <rect x="790" y="318" width="96" height="100" rx="4" fill="#111a2a" stroke="#1f3460" stroke-width="1"/>
+      <line x1="798" y1="335" x2="820" y2="335" stroke="#cfd8dc" stroke-width="7"/>
+      <text x="825" y="339" fill="#cfd8dc" font-size="8" font-family="Segoe UI,sans-serif">Gate</text>
+      <line x1="798" y1="352" x2="820" y2="352" stroke="#4fc3f7" stroke-width="2"/>
+      <text x="825" y="356" fill="#4fc3f7" font-size="8" font-family="Segoe UI,sans-serif">Valve</text>
+      <line x1="798" y1="369" x2="820" y2="369" stroke="#ffd54f" stroke-width="2"/>
+      <text x="825" y="373" fill="#ffd54f" font-size="8" font-family="Segoe UI,sans-serif">Drukmeter</text>
+      <line x1="798" y1="386" x2="820" y2="386" stroke="#66bb6a" stroke-width="2"/>
+      <text x="825" y="390" fill="#66bb6a" font-size="8" font-family="Segoe UI,sans-serif">Well pump</text>
+      <line x1="798" y1="403" x2="820" y2="403" stroke="#ef5350" stroke-width="2"/>
+      <text x="825" y="407" fill="#ef5350" font-size="8" font-family="Segoe UI,sans-serif">Rain pump</text>
+    </svg>
+
+    <!-- Control popup (positioned over SVG via JS) -->
+    <div id="ctrl-popup" class="ctrl-popup hidden">
+      <h3 id="popup-title">—</h3>
+      <div class="popup-row">
+        <label id="popup-lbl">Pos</label>
+        <input type="range" id="popup-slider" min="0" max="255" value="0"
+               oninput="document.getElementById('popup-num').value=this.value">
+        <input type="number" id="popup-num" min="0" max="255" value="0"
+               oninput="document.getElementById('popup-slider').value=this.value">
+      </div>
+      <div class="popup-btns">
+        <button class="pb-min" onclick="popupMin()">0</button>
+        <button class="pb-max" id="pb-max-btn" onclick="popupMax()">Max</button>
+        <button class="pb-set" onclick="popupApply()">Zet</button>
+        <button class="pb-x"   onclick="closePopup()">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ BOTTOM PANELS ════════════════ -->
   <div class="grid">
 
-    <!-- STATUS -->
+    <!-- Gate mode + system status -->
     <div class="card">
-      <h2>Status</h2>
-      <div class="status-box" id="status-box">Laden...</div>
-      <button class="btn-action" onclick="fetchStatus()">Vernieuwen</button>
-    </div>
-
-    <!-- RELAYS -->
-    <div class="card">
-      <h2>Relays</h2>
-      <div class="relay-grid" id="relay-grid"></div>
-      <button class="btn-action" onclick="sendPost('/api/reset-relays')">Reset alle relays</button>
-    </div>
-
-    <!-- VALVES -->
-    <div class="card span2">
-      <h2>Valves (1–9) <span style="color:#888;font-size:0.78rem;font-weight:400;">positie in graden (0–90)</span></h2>
-      <div id="valve-controls"></div>
-      <button class="btn-warn" onclick="sendPost('/api/close-all')">Sluit alle valves</button>
-    </div>
-
-    <!-- WATER LEVELS -->
-    <div class="card span2">
-      <h2>
-        Waterhoogtes (Firefly)
-        <span class="conn-badge conn-err" id="ff-badge">Verbinding...</span>
-      </h2>
-      <div class="sensor-grid" id="sensor-grid"></div>
-
-      <h2 style="margin-top:8px;margin-bottom:12px;">Gate-positie (huidige waarde)</h2>
-      <div id="actuator-display"></div>
-    </div>
-
-    <!-- GATE CONTROL -->
-    <div class="card span2">
-      <h2>Gate aansturing (0–255)</h2>
+      <h2>Gate Modus</h2>
       <div class="mode-row">
         <button class="btn-mode" id="btn-manual" onclick="setMode('manual')">Manueel</button>
         <button class="btn-mode" id="btn-auto"   onclick="setMode('auto')">Automatisch</button>
       </div>
-      <div id="gate-controls"></div>
+      <h2>Systeem Status</h2>
+      <div class="status-box" id="status-box">Laden...</div>
+      <button class="btn-action" onclick="fetchStatus()">Vernieuwen</button>
     </div>
 
-    <!-- SYSTEEM -->
+    <!-- Relays -->
+    <div class="card">
+      <h2>Relays</h2>
+      <div class="relay-grid" id="relay-grid"></div>
+      <button class="btn-action" onclick="sendPost('/api/reset-relays', null, 'Reset relays')">Reset alle relays</button>
+    </div>
+
+    <!-- System / emergency -->
     <div class="card">
       <h2>Systeem</h2>
+      <button class="btn-action" onclick="sendPost('/api/close-all', null, 'Close all')">Sluit alle valves</button>
       <button class="btn-danger" onclick="confirmShutdown()">Noodstop — alles uit</button>
     </div>
 
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div id="toast" class="toast"></div>
 
   <script>
-    const RELAYS  = ['main','fireflies','well-pump','rain-pump','pc','free1','free2','free3'];
-    const VALVES  = 9;
-    const GATES   = [201, 202, 203, 204];
-    const SENSORS = [
-      {id:1, node:201, label:'S1 (N201 A)'},
-      {id:2, node:201, label:'S2 (N201 B)'},
-      {id:3, node:202, label:'S3 (N202 A)'},
-      {id:4, node:202, label:'S4 (N202 B)'},
-      {id:5, node:203, label:'S5 (N203 A)'},
-      {id:6, node:203, label:'S6 (N203 B)'},
-      {id:7, node:204, label:'S7 (N204)'},
-    ];
+    const RELAYS = ['main','fireflies','well-pump','rain-pump','pc','free1','free2','free3'];
+    const GATES  = [201, 202, 203, 204];
 
-    // ── Build relay buttons ──────────────────────────────────────────────
-    const relayGrid = document.getElementById('relay-grid');
+    // Pump state (optimistic tracking)
+    const pumpState = { 'well-pump': false, 'rain-pump': false };
+
+    // Popup state
+    let popupType = null;
+    let popupId   = null;
+
+    // ── Build relay buttons ───────────────────────────────────────────────────
+    const rg = document.getElementById('relay-grid');
     RELAYS.forEach(r => {
-      relayGrid.innerHTML += `
+      rg.innerHTML += `
         <div class="relay-item">
           <span class="relay-label">${r}</span>
           <div class="btn-row">
@@ -146,124 +367,146 @@
         </div>`;
     });
 
-    // ── Build valve sliders ──────────────────────────────────────────────
-    const valveDiv = document.getElementById('valve-controls');
-    for (let i = 1; i <= VALVES; i++) {
-      valveDiv.innerHTML += `
-        <div class="valve-row">
-          <label>Valve ${i}</label>
-          <input type="range" min="0" max="90" value="0" id="vs${i}"
-                 oninput="document.getElementById('vn${i}').value=this.value">
-          <input type="number" min="0" max="90" value="0" id="vn${i}"
-                 oninput="document.getElementById('vs${i}').value=this.value">
-          <span style="font-size:0.78rem;color:#aaa;">°</span>
-          <button onclick="setValve(${i})">Zet</button>
-        </div>`;
-    }
-
-    // ── Build sensor display ─────────────────────────────────────────────
-    const sensorGrid = document.getElementById('sensor-grid');
-    SENSORS.forEach(s => {
-      sensorGrid.innerHTML += `
-        <div class="sensor-card">
-          <div class="s-label">${s.label}</div>
-          <div class="s-value" id="cm${s.id}">–</div>
-          <div class="s-unit">cm</div>
-          <div class="s-raw" id="raw${s.id}">raw: –</div>
-        </div>`;
-    });
-
-    // ── Build actuator display ───────────────────────────────────────────
-    const actDiv = document.getElementById('actuator-display');
-    GATES.forEach(n => {
-      actDiv.innerHTML += `
-        <div class="actuator-row">
-          <span class="a-label">Gate ${n}</span>
-          <div class="actuator-bar"><div class="actuator-bar-fill" id="abar${n}"></div></div>
-          <span class="actuator-val" id="aval${n}">–</span>
-        </div>`;
-    });
-
-    // ── Build gate controls ──────────────────────────────────────────────
-    const gateDiv = document.getElementById('gate-controls');
-    GATES.forEach(n => {
-      gateDiv.innerHTML += `
-        <div class="gate-row">
-          <label>Gate ${n}</label>
-          <input type="range" min="0" max="255" value="0" id="gs${n}"
-                 oninput="document.getElementById('gn${n}').value=this.value">
-          <input type="number" min="0" max="255" value="0" id="gn${n}"
-                 oninput="document.getElementById('gs${n}').value=this.value">
-          <button onclick="setGate(${n})">Zet</button>
-          <button onclick="setGateDirect(${n},0)"   style="background:#3e0000;color:#ef9a9a;border:1px solid #ef9a9a;">0</button>
-          <button onclick="setGateDirect(${n},255)" style="background:#1b5e20;color:#81c784;border:1px solid #81c784;">255</button>
-        </div>`;
-    });
-
-    // ── API calls ────────────────────────────────────────────────────────
-    function fetchStatus() {
-      fetch('/api/status')
+    // ── Pump toggle ───────────────────────────────────────────────────────────
+    function togglePump(relay) {
+      const next   = !pumpState[relay];
+      const action = next ? 'on' : 'off';
+      fetch(`/api/relay/${relay}/${action}`, {method: 'POST'})
         .then(r => r.json())
         .then(d => {
           if (d.error) { showToast('Fout: ' + d.error, true); return; }
-          document.getElementById('status-box').textContent =
-            'Monitor: ' + (d.monitor || '–') + '\n' +
-            'Relays:  ' + (d.relays  || '–') + '\n' +
-            'Valves:  ' + (d.valves  || '–');
-        })
-        .catch(() => showToast('Geen verbinding met server', true));
-    }
-
-    function fetchFirefly() {
-      fetch('/api/firefly/status')
-        .then(r => r.json())
-        .then(d => {
-          const badge = document.getElementById('ff-badge');
-          badge.textContent = d.connected ? 'Verbonden' : 'Niet verbonden';
-          badge.className = 'conn-badge ' + (d.connected ? 'conn-ok' : 'conn-err');
-
-          SENSORS.forEach(s => {
-            const info = d.sensors[String(s.id)];
-            document.getElementById('cm'  + s.id).textContent = info && info.cm  != null ? info.cm.toFixed(1) : '–';
-            document.getElementById('raw' + s.id).textContent = info && info.raw != null ? 'raw: ' + info.raw : 'raw: –';
-          });
-
-          GATES.forEach(n => {
-            const val = d.actuators[String(n)];
-            const pct = val != null ? Math.round(val / 255 * 100) : 0;
-            document.getElementById('abar' + n).style.width = pct + '%';
-            document.getElementById('aval' + n).textContent = val != null ? val : '–';
-          });
-        })
-        .catch(() => {});
-    }
-
-    function relayAction(relay, action) {
-      sendPost(`/api/relay/${relay}/${action}`, null, `${relay} → ${action}`);
-    }
-
-    function setValve(num) {
-      const pos = parseFloat(document.getElementById('vn' + num).value);
-      sendPost('/api/valve', {valve: num, position: pos}, `Valve ${num} → ${pos}°`);
-    }
-
-    function setGate(node) {
-      const val = parseInt(document.getElementById('gn' + node).value);
-      fetch(`/api/firefly/gate/${node}/${val}`, {method: 'POST'})
-        .then(r => r.json())
-        .then(d => {
-          if (d.error) { showToast('Fout: ' + d.error, true); return; }
-          showToast(`Gate ${node} → ${val}`);
+          pumpState[relay] = next;
+          applyPumpVisual(relay);
+          showToast(`${relay}: ${action.toUpperCase()}`);
         })
         .catch(() => showToast('Geen verbinding', true));
     }
 
-    function setGateDirect(node, val) {
-      document.getElementById('gs' + node).value = val;
-      document.getElementById('gn' + node).value = val;
-      setGate(node);
+    function applyPumpVisual(relay) {
+      const on = pumpState[relay];
+      if (relay === 'well-pump') {
+        document.getElementById('well-pump-rect').setAttribute('fill', on ? '#2e7d32' : '#1b5e20');
+        document.getElementById('well-pump-txt').setAttribute('fill', on ? '#c8e6c9' : '#a5d6a7');
+      } else {
+        document.getElementById('rain-pump-rect').setAttribute('fill', on ? '#c62828' : '#3e0000');
+        document.getElementById('rain-pump-txt').setAttribute('fill', on ? '#ffcdd2' : '#ef9a9a');
+      }
     }
 
+    // ── Gate popup ────────────────────────────────────────────────────────────
+    function openGatePopup(node, svgX, svgY) {
+      popupType = 'gate';
+      popupId   = node;
+      const s = document.getElementById('popup-slider');
+      const n = document.getElementById('popup-num');
+      s.max = 255; s.value = 0;
+      n.max = 255; n.value = 0;
+      document.getElementById('popup-title').textContent = `Gate ${node - 200} (node ${node})`;
+      document.getElementById('popup-lbl').textContent = '0–255';
+      document.getElementById('pb-max-btn').textContent = '255';
+      showPopup(svgX, svgY);
+    }
+
+    function openValvePopup(valve, svgX, svgY) {
+      popupType = 'valve';
+      popupId   = valve;
+      const s = document.getElementById('popup-slider');
+      const n = document.getElementById('popup-num');
+      s.max = 90; s.value = 0;
+      n.max = 90; n.value = 0;
+      document.getElementById('popup-title').textContent = `Valve ${valve}`;
+      document.getElementById('popup-lbl').textContent = '0–90°';
+      document.getElementById('pb-max-btn').textContent = '90°';
+      showPopup(svgX, svgY);
+    }
+
+    function showPopup(svgX, svgY) {
+      const popup   = document.getElementById('ctrl-popup');
+      const wrap    = document.querySelector('.schematic-wrap');
+      const svgEl   = document.getElementById('schematic');
+      const sr      = svgEl.getBoundingClientRect();
+      const wr      = wrap.getBoundingClientRect();
+      const scaleX  = sr.width  / 900;
+      const scaleY  = sr.height / 530;
+
+      let left = (svgX * scaleX) + (sr.left - wr.left);
+      let top  = (svgY * scaleY) + (sr.top  - wr.top);
+
+      // Keep within wrapper
+      const pw = 220, ph = 110;
+      if (left + pw > wr.width  - 8) left = wr.width  - pw - 8;
+      if (left < 5)                  left = 5;
+      if (top  + ph > wr.height - 8) top  = top - ph - 28;
+      if (top  < 30)                 top  = 30;
+
+      popup.style.left = left + 'px';
+      popup.style.top  = top  + 'px';
+      popup.classList.remove('hidden');
+    }
+
+    function closePopup() {
+      document.getElementById('ctrl-popup').classList.add('hidden');
+      popupType = null; popupId = null;
+    }
+
+    function popupMin() {
+      document.getElementById('popup-slider').value = 0;
+      document.getElementById('popup-num').value    = 0;
+    }
+
+    function popupMax() {
+      const m = document.getElementById('popup-slider').max;
+      document.getElementById('popup-slider').value = m;
+      document.getElementById('popup-num').value    = m;
+    }
+
+    function popupApply() {
+      const val = parseInt(document.getElementById('popup-num').value);
+      if (popupType === 'gate') {
+        fetch(`/api/firefly/gate/${popupId}/${val}`, {method: 'POST'})
+          .then(r => r.json())
+          .then(d => {
+            if (d.error) { showToast('Fout: ' + d.error, true); return; }
+            showToast(`Gate ${popupId} → ${val}`);
+            closePopup();
+          })
+          .catch(() => showToast('Geen verbinding', true));
+      } else {
+        fetch('/api/valve', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({valve: popupId, position: val})
+        })
+          .then(r => r.json())
+          .then(d => {
+            if (d.error) { showToast('Fout: ' + d.error, true); return; }
+            showToast(`Valve ${popupId} → ${val}°`);
+            closePopup();
+          })
+          .catch(() => showToast('Geen verbinding', true));
+      }
+    }
+
+    // Close popup on outside click
+    document.addEventListener('click', e => {
+      const popup = document.getElementById('ctrl-popup');
+      if (!popup.classList.contains('hidden') &&
+          !popup.contains(e.target) &&
+          !e.target.closest('#schematic')) {
+        closePopup();
+      }
+    });
+
+    // ── Relay action ──────────────────────────────────────────────────────────
+    function relayAction(relay, action) {
+      sendPost(`/api/relay/${relay}/${action}`, null, `${relay} → ${action}`);
+      if (relay in pumpState) {
+        pumpState[relay] = (action === 'on');
+        applyPumpVisual(relay);
+      }
+    }
+
+    // ── Gate mode ─────────────────────────────────────────────────────────────
     function setMode(mode) {
       fetch(`/api/firefly/mode/${mode}`, {method: 'POST'})
         .then(r => r.json())
@@ -272,15 +515,63 @@
           document.getElementById('btn-manual').classList.toggle('active', mode === 'manual');
           document.getElementById('btn-auto').classList.toggle('active',   mode === 'auto');
           showToast('Mode: ' + mode);
-        });
+        })
+        .catch(() => showToast('Geen verbinding', true));
     }
 
-    function confirmShutdown() {
-      if (confirm('Weet je zeker dat je het systeem wilt uitschakelen?')) {
-        sendPost('/api/shutdown', null, 'Noodstop verzonden');
-      }
+    // ── Fetch status ──────────────────────────────────────────────────────────
+    function fetchStatus() {
+      fetch('/api/status')
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) { document.getElementById('status-box').textContent = 'Fout: ' + d.error; return; }
+          document.getElementById('status-box').textContent =
+            'Monitor: ' + (d.monitor || '–') + '\n' +
+            'Relays:  ' + (d.relays  || '–') + '\n' +
+            'Valves:  ' + (d.valves  || '–');
+        })
+        .catch(() => {});
     }
 
+    // ── Fetch Firefly data ────────────────────────────────────────────────────
+    function fetchFirefly() {
+      fetch('/api/firefly/status')
+        .then(r => r.json())
+        .then(d => {
+          const badge = document.getElementById('ff-badge');
+          badge.textContent = d.connected ? 'Firefly verbonden' : 'Firefly niet verbonden';
+          badge.className   = 'conn-badge ' + (d.connected ? 'conn-ok' : 'conn-err');
+
+          // Sensor labels in SVG
+          for (let i = 1; i <= 7; i++) {
+            const info = d.sensors[String(i)];
+            const el   = document.getElementById('sv-' + i);
+            if (el) el.textContent = `S${i}: ${info && info.cm != null ? info.cm.toFixed(1) + ' cm' : '–'}`;
+          }
+
+          // Gate state: color the indicator bar and tint the gate block
+          GATES.forEach(n => {
+            const val  = d.actuators[String(n)];
+            const bar  = document.getElementById('gbar-' + n);
+            const rect = document.getElementById('grect-' + n);
+            if (bar && val != null) {
+              const pct = val / 255;
+              // Green when open, red when closed
+              const r = Math.round(150 - pct * 100);
+              const g = Math.round(60  + pct * 120);
+              bar.setAttribute('fill', `rgb(${r},${g},80)`);
+            }
+            if (rect && val != null) {
+              const pct = val / 255;
+              const borderCol = pct > 0.5 ? '#81c784' : pct > 0.1 ? '#ffd54f' : '#cfd8dc';
+              rect.setAttribute('stroke', borderCol);
+            }
+          });
+        })
+        .catch(() => {});
+    }
+
+    // ── Utility ───────────────────────────────────────────────────────────────
     function sendPost(url, body, label) {
       const opts = {method: 'POST', headers: {'Content-Type': 'application/json'}};
       if (body) opts.body = JSON.stringify(body);
@@ -291,19 +582,25 @@
           showToast((label || url) + ' — OK');
           fetchStatus();
         })
-        .catch(() => showToast('Geen verbinding met server', true));
+        .catch(() => showToast('Geen verbinding', true));
+    }
+
+    function confirmShutdown() {
+      if (confirm('Weet je zeker dat je het systeem wilt uitschakelen?')) {
+        sendPost('/api/shutdown', null, 'Noodstop verzonden');
+      }
     }
 
     function showToast(msg, isError) {
       const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.className = 'toast' + (isError ? ' error' : '');
+      t.textContent  = msg;
+      t.className    = 'toast' + (isError ? ' error' : '');
       t.style.display = 'block';
       clearTimeout(t._to);
       t._to = setTimeout(() => t.style.display = 'none', 3000);
     }
 
-    // Auto-refresh
+    // ── Auto-refresh ──────────────────────────────────────────────────────────
     fetchStatus();
     fetchFirefly();
     setInterval(fetchStatus,  10000);
