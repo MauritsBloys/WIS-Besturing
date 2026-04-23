@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Water Testbed Control</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 24px; }
+    h1 { color: #4fc3f7; font-size: 1.6rem; margin-bottom: 6px; }
+    .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 28px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .span2 { grid-column: span 2; }
+    .card { background: #16213e; border: 1px solid #0f3460; border-radius: 10px; padding: 20px; }
+    .card h2 { font-size: 1rem; color: #4fc3f7; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 10px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #555; display: inline-block; }
+    .dot.on  { background: #66bb6a; box-shadow: 0 0 6px #66bb6a; }
+    .dot.off { background: #ef5350; }
+    .status-box { background: #0d1b2a; border-radius: 6px; padding: 12px; font-size: 0.8rem; color: #90caf9; min-height: 60px; white-space: pre-wrap; word-break: break-all; }
+    .relay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .relay-item { display: flex; flex-direction: column; gap: 6px; }
+    .relay-label { font-size: 0.8rem; color: #aaa; }
+    .btn-row { display: flex; gap: 6px; }
+    button { cursor: pointer; border: none; border-radius: 5px; padding: 8px 14px; font-size: 0.82rem; font-weight: 600; transition: opacity 0.15s; }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.35; cursor: default; }
+    .btn-on     { background: #2e7d32; color: #fff; }
+    .btn-off    { background: #b71c1c; color: #fff; }
+    .btn-action { background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; width: 100%; margin-top: 8px; padding: 10px; }
+    .btn-danger { background: #7b1fa2; color: #fff; width: 100%; margin-top: 8px; padding: 10px; }
+    .btn-warn   { background: #e65100; color: #fff; width: 100%; margin-top: 8px; padding: 10px; }
+    .btn-mode   { background: #01579b; color: #fff; flex: 1; padding: 10px; }
+    .btn-mode.active { background: #0288d1; box-shadow: 0 0 8px #0288d1; }
+    .valve-row, .gate-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .valve-row label, .gate-row label { width: 70px; font-size: 0.82rem; color: #aaa; flex-shrink: 0; }
+    .valve-row input[type=range] { flex: 1; accent-color: #4fc3f7; }
+    .gate-row  input[type=range] { flex: 1; accent-color: #81c784; }
+    .valve-row input[type=number], .gate-row input[type=number] {
+      width: 64px; background: #0d1b2a; border: 1px solid #0f3460; color: #e0e0e0;
+      border-radius: 4px; padding: 4px 6px; font-size: 0.82rem;
+    }
+    .valve-row button { flex-shrink: 0; padding: 6px 12px; font-size: 0.78rem; background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; }
+    .gate-row  button { flex-shrink: 0; padding: 6px 12px; font-size: 0.78rem; background: #1b5e20; color: #81c784; border: 1px solid #81c784; }
+    .sensor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+    .sensor-card { background: #0d1b2a; border-radius: 8px; padding: 12px; text-align: center; }
+    .sensor-card .s-label { font-size: 0.72rem; color: #888; margin-bottom: 4px; }
+    .sensor-card .s-value { font-size: 1.4rem; font-weight: 700; color: #4fc3f7; }
+    .sensor-card .s-unit  { font-size: 0.7rem; color: #666; }
+    .sensor-card .s-raw   { font-size: 0.68rem; color: #555; margin-top: 2px; }
+    .actuator-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .actuator-row .a-label { width: 70px; font-size: 0.82rem; color: #aaa; }
+    .actuator-bar { flex: 1; height: 10px; background: #0d1b2a; border-radius: 5px; overflow: hidden; }
+    .actuator-bar-fill { height: 100%; background: #81c784; width: 0%; transition: width 0.4s; border-radius: 5px; }
+    .actuator-val { width: 40px; font-size: 0.8rem; color: #81c784; text-align: right; }
+    .mode-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .conn-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+    .conn-ok  { background: #1b5e20; color: #66bb6a; }
+    .conn-err { background: #3e0000; color: #ef9a9a; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; border-radius: 6px; padding: 10px 18px; font-size: 0.85rem; display: none; z-index: 999; }
+    .toast.error { background: #3e0000; color: #ef9a9a; border-color: #ef9a9a; }
+    @media (max-width: 700px) { .span2 { grid-column: span 1; } }
+  </style>
+</head>
+<body>
+  <h1>Water Testbed Control</h1>
+  <p class="subtitle">TU Delft — Water Irrigation System Interface</p>
+
+  <div class="grid">
+
+    <!-- STATUS -->
+    <div class="card">
+      <h2>Status</h2>
+      <div class="status-box" id="status-box">Laden...</div>
+      <button class="btn-action" onclick="fetchStatus()">Vernieuwen</button>
+    </div>
+
+    <!-- RELAYS -->
+    <div class="card">
+      <h2>Relays</h2>
+      <div class="relay-grid" id="relay-grid"></div>
+      <button class="btn-action" onclick="sendPost('/api/reset-relays')">Reset alle relays</button>
+    </div>
+
+    <!-- VALVES -->
+    <div class="card span2">
+      <h2>Valves (1–9) <span style="color:#888;font-size:0.78rem;font-weight:400;">positie in graden (0–90)</span></h2>
+      <div id="valve-controls"></div>
+      <button class="btn-warn" onclick="sendPost('/api/close-all')">Sluit alle valves</button>
+    </div>
+
+    <!-- WATER LEVELS -->
+    <div class="card span2">
+      <h2>
+        Waterhoogtes (Firefly)
+        <span class="conn-badge conn-err" id="ff-badge">Verbinding...</span>
+      </h2>
+      <div class="sensor-grid" id="sensor-grid"></div>
+
+      <h2 style="margin-top:8px;margin-bottom:12px;">Gate-positie (huidige waarde)</h2>
+      <div id="actuator-display"></div>
+    </div>
+
+    <!-- GATE CONTROL -->
+    <div class="card span2">
+      <h2>Gate aansturing (0–255)</h2>
+      <div class="mode-row">
+        <button class="btn-mode" id="btn-manual" onclick="setMode('manual')">Manueel</button>
+        <button class="btn-mode" id="btn-auto"   onclick="setMode('auto')">Automatisch</button>
+      </div>
+      <div id="gate-controls"></div>
+    </div>
+
+    <!-- SYSTEEM -->
+    <div class="card">
+      <h2>Systeem</h2>
+      <button class="btn-danger" onclick="confirmShutdown()">Noodstop — alles uit</button>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const RELAYS  = ['main','fireflies','well-pump','rain-pump','pc','free1','free2','free3'];
+    const VALVES  = 9;
+    const GATES   = [201, 202, 203, 204];
+    const SENSORS = [
+      {id:1, node:201, label:'S1 (N201 A)'},
+      {id:2, node:201, label:'S2 (N201 B)'},
+      {id:3, node:202, label:'S3 (N202 A)'},
+      {id:4, node:202, label:'S4 (N202 B)'},
+      {id:5, node:203, label:'S5 (N203 A)'},
+      {id:6, node:203, label:'S6 (N203 B)'},
+      {id:7, node:204, label:'S7 (N204)'},
+    ];
+
+    // ── Build relay buttons ──────────────────────────────────────────────
+    const relayGrid = document.getElementById('relay-grid');
+    RELAYS.forEach(r => {
+      relayGrid.innerHTML += `
+        <div class="relay-item">
+          <span class="relay-label">${r}</span>
+          <div class="btn-row">
+            <button class="btn-on"  onclick="relayAction('${r}','on')">AAN</button>
+            <button class="btn-off" onclick="relayAction('${r}','off')">UIT</button>
+          </div>
+        </div>`;
+    });
+
+    // ── Build valve sliders ──────────────────────────────────────────────
+    const valveDiv = document.getElementById('valve-controls');
+    for (let i = 1; i <= VALVES; i++) {
+      valveDiv.innerHTML += `
+        <div class="valve-row">
+          <label>Valve ${i}</label>
+          <input type="range" min="0" max="90" value="0" id="vs${i}"
+                 oninput="document.getElementById('vn${i}').value=this.value">
+          <input type="number" min="0" max="90" value="0" id="vn${i}"
+                 oninput="document.getElementById('vs${i}').value=this.value">
+          <span style="font-size:0.78rem;color:#aaa;">°</span>
+          <button onclick="setValve(${i})">Zet</button>
+        </div>`;
+    }
+
+    // ── Build sensor display ─────────────────────────────────────────────
+    const sensorGrid = document.getElementById('sensor-grid');
+    SENSORS.forEach(s => {
+      sensorGrid.innerHTML += `
+        <div class="sensor-card">
+          <div class="s-label">${s.label}</div>
+          <div class="s-value" id="cm${s.id}">–</div>
+          <div class="s-unit">cm</div>
+          <div class="s-raw" id="raw${s.id}">raw: –</div>
+        </div>`;
+    });
+
+    // ── Build actuator display ───────────────────────────────────────────
+    const actDiv = document.getElementById('actuator-display');
+    GATES.forEach(n => {
+      actDiv.innerHTML += `
+        <div class="actuator-row">
+          <span class="a-label">Gate ${n}</span>
+          <div class="actuator-bar"><div class="actuator-bar-fill" id="abar${n}"></div></div>
+          <span class="actuator-val" id="aval${n}">–</span>
+        </div>`;
+    });
+
+    // ── Build gate controls ──────────────────────────────────────────────
+    const gateDiv = document.getElementById('gate-controls');
+    GATES.forEach(n => {
+      gateDiv.innerHTML += `
+        <div class="gate-row">
+          <label>Gate ${n}</label>
+          <input type="range" min="0" max="255" value="0" id="gs${n}"
+                 oninput="document.getElementById('gn${n}').value=this.value">
+          <input type="number" min="0" max="255" value="0" id="gn${n}"
+                 oninput="document.getElementById('gs${n}').value=this.value">
+          <button onclick="setGate(${n})">Zet</button>
+          <button onclick="setGateDirect(${n},0)"   style="background:#3e0000;color:#ef9a9a;border:1px solid #ef9a9a;">0</button>
+          <button onclick="setGateDirect(${n},255)" style="background:#1b5e20;color:#81c784;border:1px solid #81c784;">255</button>
+        </div>`;
+    });
+
+    // ── API calls ────────────────────────────────────────────────────────
+    function fetchStatus() {
+      fetch('/api/status')
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) { showToast('Fout: ' + d.error, true); return; }
+          document.getElementById('status-box').textContent =
+            'Monitor: ' + (d.monitor || '–') + '\n' +
+            'Relays:  ' + (d.relays  || '–') + '\n' +
+            'Valves:  ' + (d.valves  || '–');
+        })
+        .catch(() => showToast('Geen verbinding met server', true));
+    }
+
+    function fetchFirefly() {
+      fetch('/api/firefly/status')
+        .then(r => r.json())
+        .then(d => {
+          const badge = document.getElementById('ff-badge');
+          badge.textContent = d.connected ? 'Verbonden' : 'Niet verbonden';
+          badge.className = 'conn-badge ' + (d.connected ? 'conn-ok' : 'conn-err');
+
+          SENSORS.forEach(s => {
+            const info = d.sensors[String(s.id)];
+            document.getElementById('cm'  + s.id).textContent = info && info.cm  != null ? info.cm.toFixed(1) : '–';
+            document.getElementById('raw' + s.id).textContent = info && info.raw != null ? 'raw: ' + info.raw : 'raw: –';
+          });
+
+          GATES.forEach(n => {
+            const val = d.actuators[String(n)];
+            const pct = val != null ? Math.round(val / 255 * 100) : 0;
+            document.getElementById('abar' + n).style.width = pct + '%';
+            document.getElementById('aval' + n).textContent = val != null ? val : '–';
+          });
+        })
+        .catch(() => {});
+    }
+
+    function relayAction(relay, action) {
+      sendPost(`/api/relay/${relay}/${action}`, null, `${relay} → ${action}`);
+    }
+
+    function setValve(num) {
+      const pos = parseFloat(document.getElementById('vn' + num).value);
+      sendPost('/api/valve', {valve: num, position: pos}, `Valve ${num} → ${pos}°`);
+    }
+
+    function setGate(node) {
+      const val = parseInt(document.getElementById('gn' + node).value);
+      fetch(`/api/firefly/gate/${node}/${val}`, {method: 'POST'})
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) { showToast('Fout: ' + d.error, true); return; }
+          showToast(`Gate ${node} → ${val}`);
+        })
+        .catch(() => showToast('Geen verbinding', true));
+    }
+
+    function setGateDirect(node, val) {
+      document.getElementById('gs' + node).value = val;
+      document.getElementById('gn' + node).value = val;
+      setGate(node);
+    }
+
+    function setMode(mode) {
+      fetch(`/api/firefly/mode/${mode}`, {method: 'POST'})
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) { showToast('Fout: ' + d.error, true); return; }
+          document.getElementById('btn-manual').classList.toggle('active', mode === 'manual');
+          document.getElementById('btn-auto').classList.toggle('active',   mode === 'auto');
+          showToast('Mode: ' + mode);
+        });
+    }
+
+    function confirmShutdown() {
+      if (confirm('Weet je zeker dat je het systeem wilt uitschakelen?')) {
+        sendPost('/api/shutdown', null, 'Noodstop verzonden');
+      }
+    }
+
+    function sendPost(url, body, label) {
+      const opts = {method: 'POST', headers: {'Content-Type': 'application/json'}};
+      if (body) opts.body = JSON.stringify(body);
+      fetch(url, opts)
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) { showToast('Fout: ' + d.error, true); return; }
+          showToast((label || url) + ' — OK');
+          fetchStatus();
+        })
+        .catch(() => showToast('Geen verbinding met server', true));
+    }
+
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast' + (isError ? ' error' : '');
+      t.style.display = 'block';
+      clearTimeout(t._to);
+      t._to = setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    // Auto-refresh
+    fetchStatus();
+    fetchFirefly();
+    setInterval(fetchStatus,  10000);
+    setInterval(fetchFirefly,  2000);
+  </script>
+</body>
+</html>
